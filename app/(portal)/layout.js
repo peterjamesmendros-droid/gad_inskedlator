@@ -7,6 +7,8 @@ import {
   LayoutDashboard, CalendarDays, BookOpen, Bell, 
   Building2, Phone, BarChart3, LogOut, Menu, X 
 } from 'lucide-react';
+// 1. Import your newly refactored Next.js Chatbot component
+import Chatbot from '@/components/Chatbot';
 
 export default function PortalLayout({ children }) {
   const router = useRouter();
@@ -196,13 +198,17 @@ export default function PortalLayout({ children }) {
         </header>
 
         {/* Main Sub-Page Workspace view container */}
-        {/* Changed block configuration to 'h-screen pt-16 flex flex-col overflow-hidden' */}
-        {/* This creates a clean layout bounding context so content scrolls perfectly without pushing the layout under the header */}
         <main className="flex-1 h-screen pt-16 overflow-y-auto bg-slate-50">
           {children}
         </main>
 
       </div>
+
+      {/* =========================================================
+          4. GLOBAL ASSISTANT COMPONENT
+         ========================================================= */}
+      {/* Mounted globally at root base layer to safely clear nested overflow tracking vectors */}
+      <Chatbot />
     </div>
   );
 }
