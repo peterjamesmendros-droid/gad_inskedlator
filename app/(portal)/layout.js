@@ -7,6 +7,8 @@ import {
   LayoutDashboard, CalendarDays, BookOpen, Bell,
   Building2, Phone, BarChart3, LogOut, Menu, X
 } from 'lucide-react';
+// 1. Import your newly refactored Next.js Chatbot component
+import Chatbot from '@/components/Chatbot';
 
 function getInitials(name = '') {
   const parts = name.trim().split(' ');
