@@ -29,13 +29,14 @@ export default function SignupPage() {
   useEffect(() => {
     async function updateLiveTelemetry() {
       try {
-        const res = await fetch('/api/rooms');
+        // Updated endpoint query string to reference your live analytics route file
+        const res = await fetch('/api/admin/rooms');
         const data = await res.json();
         if (data.success) {
-          // Flatten standard status mapping labels
           const parsed = {};
           Object.entries(data.rooms).forEach(([name, info]) => {
-            parsed[name] = info.status === 'occupied' ? 'Occupied' : 'Available';
+            // FIXED: Using .toLowerCase() handles casing mismatches safely
+            parsed[name] = info.status?.toLowerCase() === 'occupied' ? 'Occupied' : 'Available';
           });
           setRooms(parsed);
         }
