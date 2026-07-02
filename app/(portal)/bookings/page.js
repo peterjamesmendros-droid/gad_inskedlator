@@ -142,29 +142,36 @@ export default function BookingPage() {
   };
 
   return (
-    <>
+    <div
+      style={{
+        padding: '26px 26px 40px',
+        maxWidth: '1550px',
+        margin: '0 auto',
+        width: '100%',
+      }}
+    >
       {/* ══════ PAGE HEADER ══════ */}
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <div className="text-[23px] font-bold text-[var(--text)] leading-tight">Book a room</div>
-          <div className="text-[13.5px] text-[var(--text-muted)] mt-1">
+          <div className="text-[18px] font-semibold text-[var(--text)] leading-tight">Book a room</div>
+          <div className="text-[12px] text-[var(--text-muted)] mt-1">
             Each slot is 40 minutes. Bookings require admin approval.
           </div>
         </div>
       </div>
 
       {/* ══════ ROOM STATUS CARD ══════ */}
-      <div className="bg-[var(--surface)] border-[0.5px] border-[var(--border)] rounded-xl mb-5">
+      <div className="bg-[var(--surface)] border-[0.5px] border-[var(--border)] rounded-xl mb-6">
         <div className="flex items-center justify-between px-5 py-3.5 border-b-[0.5px] border-[var(--border)]">
-          <div className="flex items-center gap-2 text-[14.5px] font-semibold text-[var(--text)]">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)]">
             <Building2 size={16} />
             Current room status
           </div>
           <span className="text-[12.5px] text-[var(--text-muted)]">{currentTime}</span>
         </div>
 
-        <div className="p-4">
-          <div className="grid grid-cols-3 gap-3.5 max-[500px]:grid-cols-1">
+        <div className="p-5">
+          <div className="grid grid-cols-3 gap-5 max-[500px]:grid-cols-1">
             {ROOM_NAMES.map((roomName) => {
               const info = rooms[roomName] || { status: 'available' };
               const isOccupied = info.status === 'occupied';
@@ -176,9 +183,9 @@ export default function BookingPage() {
                     isOccupied ? 'border-t-[3px] border-t-[var(--red)]' : 'border-t-[3px] border-t-[var(--green)]'
                   }`}
                 >
-                  <div className="text-[14px] font-semibold text-[var(--text)] mb-2">{roomName}</div>
+                  <div className="text-[15px] font-semibold text-[var(--text)] mb-2">{roomName}</div>
                   <span
-                    className="inline-block text-[11px] font-bold px-3.5 py-1 rounded-full"
+                    className="inline-block text-[12px] font-semibold px-3.5 py-1 rounded-full"
                     style={{
                       background: isOccupied ? 'var(--red-bg)' : 'var(--green-bg)',
                       color: isOccupied ? 'var(--red)' : 'var(--green)',
@@ -202,16 +209,16 @@ export default function BookingPage() {
       </div>
 
       {/* ══════ BOOKING FORM + MY BOOKINGS ══════ */}
-      <div className="grid grid-cols-[360px_1fr] gap-5 items-start max-[820px]:grid-cols-1">
+      <div className="grid grid-cols-[380px_minmax(0,1fr)] gap-6 items-start max-[820px]:grid-cols-1">
 
         {/* LEFT: RESERVE A SLOT */}
         <div className="bg-[var(--surface)] border-[0.5px] border-[var(--border)] rounded-xl">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b-[0.5px] border-[var(--border)] text-[14.5px] font-semibold text-[var(--text)]">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b-[0.5px] border-[var(--border)] text-[15px] font-semibold text-[var(--text)]">
             <CalendarPlus size={16} />
             Reserve a slot
           </div>
 
-          <div className="p-4">
+          <div className="p-5">
             {successMsg && (
               <div
                 className="flex items-start gap-2 text-[12.5px] rounded-[10px] px-3.5 py-3 mb-4"
@@ -234,27 +241,27 @@ export default function BookingPage() {
 
             <form onSubmit={handleBookingSubmit}>
               <div className="mb-4">
-                <label className="block text-[10.5px] font-bold tracking-[0.1em] uppercase text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5">
                   Full name
                 </label>
                 <input
                   type="text"
                   readOnly
                   value={user.fullname}
-                  className="w-full h-11 rounded-[8px] px-3.5 text-[13.5px] font-medium outline-none cursor-not-allowed"
+                  className="w-full h-11 rounded-[8px] px-3.5 text-[14px] font-medium outline-none cursor-not-allowed"
                   style={{ border: '1.5px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text)' }}
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-[10.5px] font-bold tracking-[0.1em] uppercase text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5">
                   Select room
                 </label>
                 <select
                   value={selectedRoom}
                   onChange={(e) => setSelectedRoom(e.target.value)}
                   required
-                  className="w-full h-11 rounded-[8px] px-3.5 text-[13.5px] outline-none"
+                  className="w-full h-11 rounded-[8px] px-3.5 text-[14px] outline-none"
                   style={{ border: '1.5px solid var(--border)', background: '#f6f5f8', color: 'var(--text)' }}
                 >
                   <option value="">— Choose a room —</option>
@@ -265,7 +272,7 @@ export default function BookingPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-[10.5px] font-bold tracking-[0.1em] uppercase text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5">
                   Date
                 </label>
                 <input
@@ -274,13 +281,13 @@ export default function BookingPage() {
                   value={bookingDate}
                   onChange={(e) => setBookingDate(e.target.value)}
                   required
-                  className="w-full h-11 rounded-[8px] px-3.5 text-[13.5px] outline-none"
+                  className="w-full h-11 rounded-[8px] px-3.5 text-[14px] outline-none"
                   style={{ border: '1.5px solid var(--border)', background: '#f6f5f8', color: 'var(--text)' }}
                 />
               </div>
 
               <div className="mb-5">
-                <label className="block text-[10.5px] font-bold tracking-[0.1em] uppercase text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5">
                   Start time
                 </label>
                 <input
@@ -288,7 +295,7 @@ export default function BookingPage() {
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   required
-                  className="w-full h-11 rounded-[8px] px-3.5 text-[13.5px] outline-none"
+                  className="w-full h-11 rounded-[8px] px-3.5 text-[14px] outline-none"
                   style={{ border: '1.5px solid var(--border)', background: '#f6f5f8', color: 'var(--text)' }}
                 />
                 <div className="text-[11.5px] text-[var(--text-muted)] mt-1.5">
@@ -299,7 +306,7 @@ export default function BookingPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-11 rounded-[8px] text-white text-[14px] font-bold flex items-center justify-center gap-2 transition-colors"
+                className="w-full h-11 rounded-[8px] text-white text-[14px] font-semibold flex items-center justify-center gap-2 transition-colors"
                 style={{ background: isSubmitting ? 'var(--primary-light)' : 'var(--primary)' }}
               >
                 <CalendarPlus size={17} />
@@ -311,7 +318,7 @@ export default function BookingPage() {
 
         {/* RIGHT: MY BOOKINGS TABLE */}
         <div className="bg-[var(--surface)] border-[0.5px] border-[var(--border)] rounded-xl">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b-[0.5px] border-[var(--border)] text-[14.5px] font-semibold text-[var(--text)]">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b-[0.5px] border-[var(--border)] text-[15px] font-semibold text-[var(--text)]">
             <ListTodo size={16} />
             My bookings
           </div>
@@ -319,13 +326,13 @@ export default function BookingPage() {
           {userBookings.length > 0 ? (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-[13px]">
+                <table className="w-full border-collapse text-[14px]">
                   <thead>
                     <tr>
                       {['Room', 'Date', 'Time', 'Status'].map((h) => (
                         <th
                           key={h}
-                          className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] border-b-[0.5px] border-[var(--border)]"
+                          className="text-left px-4 py-3 text-[12px] font-semibold text-[var(--text-muted)] border-b-[0.5px] border-[var(--border)]"
                         >
                           {h}
                         </th>
@@ -347,7 +354,7 @@ export default function BookingPage() {
                           </td>
                           <td className="px-4 py-3.5">
                             <span
-                              className="inline-block text-[11px] font-bold px-3 py-1 rounded-full"
+                              className="inline-block text-[12px] font-semibold px-3 py-1 rounded-full"
                               style={{
                                 background: s === 'pending' ? 'var(--amber-bg)'
                                   : s === 'accepted' ? 'var(--green-bg)'
@@ -381,12 +388,12 @@ export default function BookingPage() {
               </div>
             </>
           ) : (
-            <div className="py-10 text-center text-[13px] text-[var(--text-muted)]">
+            <div className="py-10 text-center text-[14px] text-[var(--text-muted)]">
               No bookings yet. Use the form to reserve a room.
             </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
