@@ -1,114 +1,158 @@
-import Lightbox from '@/components/Lightbox';
-import { Info, Target, Heart, FileText } from 'lucide-react';
+'use client';
 
-export const metadata = {
-  title: 'Learn — GAD Inskedlator',
-};
+import { useState } from 'react';
+import { AlertCircle, Star, BookOpen, Heart, X } from 'lucide-react';
+
+const card = { background:'#fff', border:'0.5px solid #e2e0e7', borderRadius:12, overflow:'hidden' };
+const cardHeader = { padding:'12px 16px', borderBottom:'0.5px solid #e2e0e7', display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:600, color:'#1a1a2e' };
+const cardBody = { padding:'14px 16px' };
+const sectionText = { fontSize:13, color:'#4a4760', lineHeight:1.7, textAlign:'justify', margin:0 };
+const sectionImg = { width:'100%', borderRadius:12, cursor:'pointer', display:'block', border:'0.5px solid #e2e0e7', marginTop:12 };
+const listItem = (last) => ({ display:'flex', gap:10, padding:'9px 0', borderBottom: last ? 'none' : '0.5px solid #e2e0e7', fontSize:13, lineHeight:1.55, color:'#4a4760' });
 
 export default function LearnPage() {
+  const [lightbox, setLightbox] = useState(null);
+
+  const openImg = (src, caption) => setLightbox({ src, caption });
+  const closeImg = () => setLightbox(null);
+
   return (
-    <div className="p-6 space-y-6 max-w-7xl w-full mx-auto">
-      
-      {/* Page Header (Perfect match with Admin Layout) */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Learn</h1>
-          <p className="text-sm text-slate-500 mt-1">Gender and Development — background, mission, and legal basis.</p>
-        </div>
+    <div style={{ padding:'26px 26px 40px' }}>
+
+      {/* PAGE HEADER */}
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:18, fontWeight:700, color:'#1a1a2e' }}>Learn</div>
+        <div style={{ fontSize:12, color:'#8b8999', marginTop:3 }}>Gender and Development — background, mission, and legal basis.</div>
       </div>
 
-      {/* Grid Content Layout (Matches Admin split grids) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* LEFT COLUMN: Core Content Cards (Takes 2/3 of space) */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* About Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="border-b border-slate-200 px-5 py-4 bg-slate-50/70 flex items-center space-x-2 text-slate-800 font-bold text-sm">
-              <Info className="h-4 w-4 text-purple-950" />
-              <span>About the project</span>
+      {/* TWO-COLUMN GRID: 1fr + 300px sidebar — matching PHP .content-grid */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:18, alignItems:'start' }}>
+
+        {/* LEFT: 3 main content cards stacked */}
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* About the project */}
+          <div style={card}>
+            <div style={cardHeader}>
+              <AlertCircle size={14} color="#5b1f6a" /> About the project
             </div>
-            <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-600 leading-relaxed text-justify font-medium">
-                The GAD Inskedlator is a scheduling system developed to manage the use of the Child-Minding Centre and Lactation Room within DICT. It ensures fair, organized, and convenient booking for employees who require these facilities.
-              </p>
-              <div className="rounded-xl overflow-hidden border border-slate-100">
-                <Lightbox 
-                  src="/lp/gad.png" 
-                  alt="GAD Banner" 
-                  caption="The GAD Inskedlator is a scheduling system developed to manage the use of the Child-Minding Centre and Lactation Room within DICT."
-                />
-              </div>
+            <div style={cardBody}>
+              <p style={sectionText}>The GAD Inskedlator is a scheduling system developed to manage the use of the Child-Minding Centre and Lactation Room within DICT. It ensures fair, organized, and convenient booking for employees who require these facilities.</p>
+              <img
+                src="/lp/gad.png"
+                alt="GAD Banner"
+                style={sectionImg}
+                onClick={() => openImg('/lp/gad.png', 'The GAD Inskedlator is a scheduling system developed to manage the use of the Child-Minding Centre and Lactation Room within DICT. It ensures fair, organized, and convenient booking for employees who require these facilities.')}
+                onMouseEnter={e => e.target.style.opacity = '0.88'}
+                onMouseLeave={e => e.target.style.opacity = '1'}
+              />
             </div>
           </div>
 
-          {/* Mission Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="border-b border-slate-200 px-5 py-4 bg-slate-50/70 flex items-center space-x-2 text-slate-800 font-bold text-sm">
-              <Target className="h-4 w-4 text-purple-950" />
-              <span>Our mission</span>
+          {/* Our mission */}
+          <div style={card}>
+            <div style={cardHeader}>
+              <Star size={14} color="#5b1f6a" /> Our mission
             </div>
-            <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-600 leading-relaxed text-justify font-medium">
-                Our mission is to promote gender equality and workplace inclusivity by providing accessible and efficient facilities that support working parents, especially mothers. This initiative aligns with national policies promoting women's rights and employee welfare.
-              </p>
-              <div className="rounded-xl overflow-hidden border border-slate-100">
-                <Lightbox 
-                  src="/lp/mission.png" 
-                  alt="Mission" 
-                  caption="Our mission is to promote gender equality and workplace inclusivity by providing accessible and efficient facilities that support working parents, especially mothers."
-                />
-              </div>
+            <div style={cardBody}>
+              <p style={sectionText}>Our mission is to promote gender equality and workplace inclusivity by providing accessible and efficient facilities that support working parents, especially mothers. This initiative aligns with national policies promoting women's rights and employee welfare.</p>
+              <img
+                src="/lp/mission.png"
+                alt="Mission"
+                style={sectionImg}
+                onClick={() => openImg('/lp/mission.png', 'Our mission is to promote gender equality and workplace inclusivity by providing accessible and efficient facilities that support working parents, especially mothers.')}
+                onMouseEnter={e => e.target.style.opacity = '0.88'}
+                onMouseLeave={e => e.target.style.opacity = '1'}
+              />
+            </div>
+          </div>
+
+          {/* Legal basis */}
+          <div style={card}>
+            <div style={cardHeader}>
+              <BookOpen size={14} color="#5b1f6a" /> Legal basis
+            </div>
+            <div style={cardBody}>
+              <p style={sectionText}>This project supports the <strong>Magna Carta of Women (RA 9710)</strong> and the <strong>Expanded Breastfeeding Promotion Act (RA 10028)</strong>, which mandate the establishment of child-minding centers and lactation stations in workplaces.</p>
+              <img
+                src="/lp/legal.png"
+                alt="Legal Basis"
+                style={sectionImg}
+                onClick={() => openImg('/lp/legal.png', 'This project supports RA 9710 and RA 10028, mandating child-minding centers and lactation stations in workplaces.')}
+                onMouseEnter={e => e.target.style.opacity = '0.88'}
+                onMouseLeave={e => e.target.style.opacity = '1'}
+              />
             </div>
           </div>
 
         </div>
 
-        {/* RIGHT COLUMN: Sidebar Highlights */}
-        <div className="space-y-6">
-          
-          {/* Why This Matters Sidebar Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="border-b border-slate-200 px-5 py-4 bg-slate-50/70 flex items-center space-x-2 text-slate-800 font-bold text-sm">
-              <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />
-              <span>Why this matters</span>
+        {/* RIGHT: sidebar — 300px, 2 cards stacked */}
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* Why this matters */}
+          <div style={card}>
+            <div style={cardHeader}>
+              <Heart size={14} color="#5b1f6a" /> Why this matters
             </div>
-            <div className="p-5 divide-y divide-slate-100">
-              <div className="flex items-start space-x-3 pb-3.5 text-xs text-slate-600 leading-relaxed font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-purple-900 mt-1.5 shrink-0" />
-                <span><strong className="text-slate-900 font-bold">Supports working parents</strong> — allows mothers to balance work and parenting loops.</span>
-              </div>
-              <div className="flex items-start space-x-3 pt-3.5 text-xs text-slate-600 leading-relaxed font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-purple-900 mt-1.5 shrink-0" />
-                <span><strong className="text-slate-900 font-bold">Encourages gender equality</strong> — women return to work confidently after childbirth.</span>
-              </div>
+            <div style={{ padding:'4px 16px 8px' }}>
+              {[
+                ['Supports working parents', 'allows mothers to balance work and parenting.'],
+                ['Encourages gender equality', 'women return to work confidently after childbirth.'],
+                ['Promotes mental health', 'reduces anxiety and fatigue for parents.'],
+                ['Boosts productivity', 'less stressed employees are more focused at work.'],
+                ['Enhances reputation', 'demonstrates the organization values employee welfare.'],
+              ].map(([bold, rest], i, arr) => (
+                <div key={bold} style={listItem(i === arr.length - 1)}>
+                  <span style={{ color:'#5b1f6a', fontSize:16, flexShrink:0, marginTop:-1 }}>•</span>
+                  <span><strong>{bold}</strong> — {rest}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Infographics Sidebar Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="border-b border-slate-200 px-5 py-4 bg-slate-50/70 flex items-center space-x-2 text-slate-800 font-bold text-sm">
-              <FileText className="h-4 w-4 text-purple-950" />
-              <span>Infographics</span>
+          {/* Infographics */}
+          <div style={card}>
+            <div style={cardHeader}>
+              <BookOpen size={14} color="#5b1f6a" /> Infographics
             </div>
-            <div className="p-5 space-y-3">
-              <a href="/lp/infog.png" download="Infographics_RA10028" className="group block rounded-xl overflow-hidden border border-slate-200 transition-all shadow-sm">
-                <img 
-                  src="/lp/infog.png" 
-                  alt="RA 10028 Infographic" 
-                  className="w-full h-auto transition group-hover:opacity-90 object-contain" 
+            <div style={cardBody}>
+              <a href="/lp/infog.png" download="Infographics_RA10028">
+                <img
+                  src="/lp/infog.png"
+                  alt="RA 10028 Infographic"
+                  style={{ ...sectionImg, marginTop:0, marginBottom:8 }}
+                  onMouseEnter={e => e.target.style.opacity = '0.88'}
+                  onMouseLeave={e => e.target.style.opacity = '1'}
                 />
               </a>
-              <p className="text-[11px] text-slate-400 font-medium text-center select-none">
-                Click the infographic image container block to download.
-              </p>
+              <p style={{ fontSize:11.5, color:'#8b8999', margin:0 }}>Click the infographic to download.</p>
             </div>
           </div>
 
         </div>
-
       </div>
+
+      {/* LIGHTBOX */}
+      {lightbox && (
+        <div
+          onClick={closeImg}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.80)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth:860, width:'92%', textAlign:'center', position:'relative' }}>
+            <button onClick={closeImg} style={{ position:'absolute', top:-36, right:0, background:'none', border:'none', cursor:'pointer' }}>
+              <X size={28} color="#fff" />
+            </button>
+            <img src={lightbox.src} alt="" style={{ width:'100%', borderRadius:12, maxHeight:'78vh', objectFit:'contain', display:'block' }} />
+            {lightbox.caption && (
+              <div style={{ color:'rgba(255,255,255,0.78)', fontSize:13, marginTop:14, lineHeight:1.6, textAlign:'left' }}>
+                {lightbox.caption}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
