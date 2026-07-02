@@ -73,7 +73,6 @@ export default function AdminBookingsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        // Refresh local data immediately without layout jumping
         fetchAdminData();
       } else {
         alert(data.message || 'Action processing failure.');
@@ -94,13 +93,13 @@ export default function AdminBookingsPage() {
   return (
     <div className="p-6 space-y-6 max-w-7xl w-full mx-auto">
       
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200 pb-4">
-        <div className="border-b border-slate-100 pb-5">
+      {/* Cleaned Page Header Split Block */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
+        <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Booking management</h2>
           <p className="text-sm text-slate-500 mt-1">Review, approve, reject, and monitor all booking requests.</p>
         </div>
-        <div className="text-xs font-bold bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm text-slate-600 tabular-nums">
+        <div className="text-xs font-bold bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm text-slate-600 tabular-nums shrink-0 self-start sm:self-center">
           {currentTime || '00:00:00 AM'}
         </div>
       </div>

@@ -21,7 +21,7 @@ export async function GET() {
     const pendingResult = await query("SELECT COUNT(*) as count FROM bookings WHERE status='pending'");
     const pendingCount = extractCount(pendingResult);
 
-    const userResult = await query('SELECT COUNT(*) as count FROM users').catch(() => null);
+    const userResult = await query('SELECT COUNT(*) as count FROM users_login').catch(() => null);
     const totalUsers = extractCount(userResult);
 
     const msgResult = await query("SELECT COUNT(*) as count FROM contact_messages WHERE status='Unread'");

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Lock, User } from 'lucide-react';
+import Link from 'next/link'; // Imported standard Next.js Link
+import { ShieldAlert, Lock, User, ArrowLeft } from 'lucide-react'; // Added ArrowLeft icon
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('');
@@ -11,32 +12,32 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-        // Pointing exactly to our isolated admin auth route
-        const res = await fetch('/api/auth/admin-login', {
+      // Pointing exactly to our isolated admin auth route
+      const res = await fetch('/api/auth/admin-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
-        });
-        const data = await res.json();
+      });
+      const data = await res.json();
 
-        if (data.success) {
+      if (data.success) {
         router.push('/admin'); // Redirect to dashboard on success
         router.refresh();
-        } else {
+      } else {
         setError(data.message || 'Authentication failed.');
-        }
+      }
     } catch (err) {
-        setError('A network error occurred. Please try again.');
+      setError('A network error occurred. Please try again.');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
@@ -95,6 +96,19 @@ export default function AdminLogin() {
             {loading ? 'Authenticating system token...' : 'Initialize Secure Session'}
           </button>
         </form>
+
+        {/* Dynamic Back-to-User-Login Redirection Footer Link Component */}
+        <div className="pt-2 text-center border-t border-slate-100">
+          <Link 
+            href="/" 
+            onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span>Not an admin? Go to User Login</span>
+          </Link>
+        </div>
+
       </div>
     </div>
   );

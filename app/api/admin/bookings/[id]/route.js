@@ -1,46 +1,27 @@
 import { NextResponse } from 'next/server';
+import { query } from '@/lib/db'; 
 
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const filter = searchParams.get('filter') || 'all';
-
+export async function POST(request, { params }) {
   try {
-    // TODO: Connect your real database connection/query here
-    // Example MySQL query text: SELECT * FROM bookings
-    const mockBookings = [
-      {
-        id: "1",
-        fullname: "Jane Doe",
-        room: "Room 2",
-        date: "2026-07-02",
-        start_time: "09:00 AM",
-        end_time: "11:00 AM",
-        status: "pending"
-      },
-      {
-        id: "2",
-        fullname: "John Smith",
-        room: "Room 1",
-        date: "2026-07-03",
-        start_time: "01:00 PM",
-        end_time: "03:00 PM",
-        status: "accepted"
-      }
-    ];
+    // 1. CRITICAL FOR NEXT.JS 16: You must await params before destructuring!
+    const { id } = await params; 
+    const { action } = await request.json();
 
-    // Filter results locally for testing
-    const filteredBookings = filter === 'all' 
-      ? mockBookings 
-      : mockBookings.filter(b => b.status === filter);
+    console.log(`Processing action: ${action} for booking ID: ${id}`);
 
-    return NextResponse.json({ 
-      success: true, 
-      bookings: filteredBookings,
-      meta: { 
-        pendingCount: mockBookings.filter(b => b.status === 'pending').length 
-      }
-    });
+    if (action === 'accept') {
+      await query('UPDATE bookings SET status = $1 WHERE id = $2', ['accepted', id]);
+    } else if (action === 'reject') {
+      await query('UPDATE bookings SET status = $1 WHERE id = $2', ['rejected', id]);
+    } else if (action === 'delete') {
+      await query('DELETE FROM bookings WHERE id = $1', [id]);
+    } else {
+      return NextResponse.json({ success: false, message: 'Invalid action parameter' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, message: `Booking record ${action}ed successfully.` });
   } catch (error) {
+    console.error("PostgreSQL POST Action Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
