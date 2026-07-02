@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Upload, Send, Trash2, CheckCircle2, AlertCircle, MessageSquare, BarChart3, Image as ImageIcon
+  Upload, Send, Trash2, CheckCircle2, MessageSquare, BarChart3, Image as ImageIcon
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -81,7 +81,6 @@ export default function AdminDashboard() {
     if (!text) return;
 
     try {
-      // Clean payload structure targeted directly to your comments router
       const res = await fetch('/api/admin/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,14 +110,16 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto pt-4 pb-16 px-4 sm:px-6 space-y-8">
+    // FORCE HARDBOUND LAYOUT BOX WIDTH LIMITS
+    <div className="w-full max-w-7xl mx-auto pt-6 pb-16 px-4 sm:px-6 lg:px-8 space-y-8 block clear-both">
       
-      <div className="border-b border-slate-100 pb-5">
+      {/* Title Segment */}
+      <div className="border-b border-slate-200 pb-5">
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Admin dashboard</h1>
         <p className="text-sm text-slate-500 mt-1">Post facility updates and manage the system.</p>
       </div>
 
-      {/* Metrics Grid */}
+      {/* Analytics Telemetry Block Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
         {[
           { label: "Total bookings", value: metrics.totalBookings, color: "border-l-[#521956]" },
@@ -126,18 +127,19 @@ export default function AdminDashboard() {
           { label: "Registered users", value: metrics.totalUsers, color: "border-l-emerald-600" },
           { label: "Unread messages", value: metrics.unreadCount, color: "border-l-rose-500" }
         ].map((card, idx) => (
-          <div key={idx} className={`bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs border-l-4 ${card.color} flex flex-col justify-between h-24`}>
+          <div key={idx} className={`bg-white p-5 rounded-2xl border border-slate-200 shadow-xs border-l-4 ${card.color} flex flex-col justify-between h-24`}>
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{card.label}</span>
             <span className="text-3xl font-black text-slate-800 tracking-tight">{card.value}</span>
           </div>
         ))}
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 space-y-6">
+      {/* Main Grid View */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start w-full">
+        <div className="lg:col-span-2 space-y-6 w-full">
           
-          {/* Post Form */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs p-4 sm:p-6">
+          {/* Main Submissions Form Container */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs p-4 sm:p-6">
             <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-5 uppercase tracking-wide">
               <Upload className="w-3.5 h-3.5 text-[#521956]" /> Post a facility update
             </h3>
@@ -169,12 +171,13 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* FIXED PROGRESS TRACK BAR ACCENTS AND STYLING OVERRIDES */}
               <div className="space-y-2 pt-1">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold uppercase tracking-wider text-[10px] text-slate-500">Progress — {formProgress}%</span>
                 </div>
                 <input 
-                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#521956]" 
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#521956] bg-slate-100 outline-none block" 
                   type="range" 
                   name="progress" 
                   min="0" 
@@ -182,7 +185,8 @@ export default function AdminDashboard() {
                   value={formProgress} 
                   onChange={(e) => setFormProgress(parseInt(e.target.value))} 
                   style={{
-                    background: `linear-gradient(to right, #521956 0%, #521956 ${formProgress}%, #f1f5f9 ${formProgress}%, #f1f5f9 100%)`
+                    background: `linear-gradient(to right, #521956 0%, #521956 ${formProgress}%, #e2e8f0 ${formProgress}%, #e2e8f0 100%)`,
+                    WebkitAppearance: 'none'
                   }}
                 />
               </div>
@@ -193,8 +197,8 @@ export default function AdminDashboard() {
             </form>
           </div>
 
-          {/* Timeline Feed */}
-          <div className="space-y-4">
+          {/* Timeline Feed Container */}
+          <div className="space-y-4 w-full">
             <div className="flex items-center gap-2 text-slate-800 px-1 py-1">
               <MessageSquare className="w-4 h-4 text-[#521956]" />
               <h3 className="text-xs font-bold uppercase tracking-wider">Posted updates</h3>
@@ -207,8 +211,8 @@ export default function AdminDashboard() {
               </div>
             ) : (
               posts.map((post) => (
-                <div key={post.id} className="bg-white border border-slate-200/70 rounded-2xl shadow-xs p-4 sm:p-6 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                <div key={post.id} className="bg-white border border-slate-200 rounded-2xl shadow-xs p-4 sm:p-6 space-y-4 w-full block">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 w-full">
                     <div className="space-y-1.5">
                       <h4 className="font-black text-rose-800 text-sm tracking-tight uppercase break-words">{post.title}</h4>
                       <span className="text-[10px] bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold tracking-wide inline-block">
@@ -235,8 +239,8 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  {/* Comments Segment */}
-                  <div className="pt-4 border-t border-slate-100 space-y-3">
+                  {/* Comment Thread Layout */}
+                  <div className="pt-4 border-t border-slate-100 space-y-3 w-full">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Comments</span>
                     
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -253,13 +257,13 @@ export default function AdminDashboard() {
                       ))}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1 w-full">
                       <input 
                         type="text" 
                         value={commentInputs[post.id] || ''}
                         onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
                         placeholder="Write a comment..."
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-purple-600 font-medium text-slate-700"
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-purple-600 font-medium text-slate-700 min-w-0"
                       />
                       <button onClick={() => handleAddComment(post.id)} className="bg-[#521956] hover:bg-purple-900 text-white text-xs font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs shrink-0">
                         <Send className="w-3 h-3" /> Post
@@ -274,9 +278,9 @@ export default function AdminDashboard() {
 
         </div>
 
-        {/* Sidebar Info Panels */}
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs p-5 space-y-4">
+        {/* Right Info Gutters */}
+        <div className="space-y-6 w-full lg:sticky lg:top-4">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs p-5 space-y-4">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-[#521956]" /> Facility focus
             </h3>
@@ -287,7 +291,7 @@ export default function AdminDashboard() {
             </ul>
           </div>
 
-          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs p-5 space-y-3">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs p-5 space-y-3">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[#521956]" /> Progress guide
             </h3>
