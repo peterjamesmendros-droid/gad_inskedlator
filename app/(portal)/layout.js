@@ -3,206 +3,313 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, CalendarDays, BookOpen, Bell, 
-  Building2, Phone, BarChart3, LogOut, Menu, X 
+import {
+  LayoutDashboard, CalendarDays, BookOpen, Bell,
+  Building2, Phone, BarChart3, LogOut, Menu, X
 } from 'lucide-react';
 
+function getInitials(name = '') {
+  const parts = name.trim().split(' ');
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
 export default function PortalLayout({ children }) {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState({ fullname: 'Guest' });
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Load identity values upon state mount safely
   useEffect(() => {
-    const savedUser = localStorage.getItem('session_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (err) {
-        console.error("Failed to parse user session info:", err);
-      }
-    }
+    const saved = localStorage.getItem('session_user');
+    if (saved) try { setUser(JSON.parse(saved)); } catch {}
   }, []);
 
-  // Structural Safeguard: Close the sliding mobile menu whenever a link is selected
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+  useEffect(() => { setIsMobileOpen(false); }, [pathname]);
 
   const handleSignOut = () => {
     localStorage.removeItem('session_user');
     router.push('/');
   };
 
-  // Automated layout linkage matrix array
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, category: 'Main' },
-    { name: 'Book a room', path: '/bookings', icon: CalendarDays, category: 'Main' },
-    { name: 'Learn', path: '/learn', icon: BookOpen, category: 'Info' },
-    { name: 'Updates', path: '/updates', icon: Bell, category: 'Info' },
-    { name: 'Facilities', path: '/facilities', icon: Building2, category: 'Info' },
-    { name: 'Contact', path: '/contact', icon: Phone, category: 'Info' },
-    { name: 'Evaluation', path: '/evaluation', icon: BarChart3, category: 'Info' },
+  const navSections = [
+    {
+      label: 'Main',
+      items: [
+        { name: 'Dashboard',   path: '/dashboard', icon: LayoutDashboard },
+        { name: 'Book a room', path: '/bookings',  icon: CalendarDays },
+      ]
+    },
+    {
+      label: 'Info',
+      items: [
+        { name: 'Learn',      path: '/learn',      icon: BookOpen },
+        { name: 'Updates',    path: '/updates',    icon: Bell },
+        { name: 'Facilities', path: '/facilities', icon: Building2 },
+        { name: 'Contact',    path: '/contact',    icon: Phone },
+        { name: 'Evaluation', path: '/evaluation', icon: BarChart3 },
+      ]
+    },
   ];
 
-  // Navigation Links View Helper Matrix
-  const NavigationLinks = () => (
-    <nav className="space-y-4">
-      {['Main', 'Info'].map((category) => (
-        <div key={category} className="space-y-1">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-1">
-            {category}
-          </p>
-          {navItems
-            .filter((item) => item.category === category)
-            .map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-purple-50 text-purple-900 font-semibold shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-purple-700' : 'text-slate-400'}`} />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-        </div>
-      ))}
-    </nav>
-  );
+  const initials    = getInitials(user.fullname);
+  const currentPage = navSections.flatMap(s => s.items).find(i => i.path === pathname)?.name ?? 'Portal';
+
+  const TOPBAR_H  = 52;
+  const SIDEBAR_W = 210;
 
   return (
-    <div className="flex min-h-screen bg-slate-100 font-sans text-slate-800 relative">
-      
-      {/* =========================================================
-          1. DESKTOP PERMANENT NAVIGATION SIDEBAR PANEL
-         ========================================================= */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col justify-between shrink-0 fixed top-0 bottom-0 left-0 z-30">
-        <div className="p-4 space-y-6">
-          <div className="text-indigo-950 font-black text-xl tracking-wide px-2 uppercase">
+    <div style={{ fontFamily:"'Poppins','Segoe UI',system-ui,sans-serif", minHeight:'100vh', background:'#f5f4f7' }}>
+
+      {/* ══════════════════════════════════════════
+          TOPBAR — full width, fixed, purple
+          Exactly matches PHP .topbar
+      ══════════════════════════════════════════ */}
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        height: TOPBAR_H,
+        background: '#5b1f6a',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 20px',
+        gap: 16,
+        zIndex: 100,
+      }}>
+        {/* Mobile hamburger */}
+        <button
+          className="mobile-hamburger"
+          onClick={() => setIsMobileOpen(true)}
+          style={{ background:'none', border:'none', color:'rgba(255,255,255,0.75)', cursor:'pointer', display:'none', padding:4, flexShrink:0 }}
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Brand — logo + name, same as PHP .topbar-brand */}
+        <Link href="/dashboard" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flexShrink:0 }}>
+          <img src="/logo/dlogo.png" alt="DICT"
+            style={{ width:32, height:32, objectFit:'contain', display:'block' }} />
+          <span style={{ fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'0.03em', whiteSpace:'nowrap' }}>
             GAD Inskedlator
-          </div>
-          <NavigationLinks />
-        </div>
+          </span>
+        </Link>
 
-        {/* Desktop User Profile Capsule Element */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="h-9 w-9 bg-purple-900 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase ring-2 ring-purple-100 shrink-0">
-              {user.fullname.charAt(0)}
+        {/* Divider */}
+        <div style={{ width:1, height:20, background:'rgba(255,255,255,0.2)', flexShrink:0 }} />
+
+        {/* Current page name */}
+        <span style={{ fontSize:13, color:'rgba(255,255,255,0.6)' }}>
+          {currentPage}
+        </span>
+
+        {/* Right: user pill + logout */}
+        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:14 }}>
+          <div style={{
+            display:'flex', alignItems:'center', gap:8,
+            background:'rgba(255,255,255,0.1)',
+            border:'0.5px solid rgba(255,255,255,0.18)',
+            borderRadius:20, padding:'4px 12px 4px 4px',
+          }}>
+            <div style={{
+              width:28, height:28, borderRadius:'50%',
+              background:'#FFD700', color:'#5b1f6a',
+              fontSize:11, fontWeight:700,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              textTransform:'uppercase', flexShrink:0,
+            }}>
+              {initials}
             </div>
-            <div className="truncate min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{user.fullname}</p>
-              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Employee</p>
-            </div>
+            <span style={{ fontSize:12.5, fontWeight:500, color:'rgba(255,255,255,0.9)', whiteSpace:'nowrap' }}>
+              {user.fullname}
+            </span>
           </div>
-          <button 
-            onClick={handleSignOut} 
-            title="Sign Out"
-            className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-all shrink-0"
-          >
-            <LogOut className="h-4 w-4" />
+          <button onClick={handleSignOut} title="Sign out" style={{
+            background:'none', border:'none',
+            color:'rgba(255,255,255,0.65)', cursor:'pointer',
+            display:'flex', alignItems:'center', padding:4, borderRadius:8,
+          }}>
+            <LogOut size={18} />
           </button>
         </div>
-      </aside>
+      </div>
 
-      {/* =========================================================
-          2. MOBILE SIDEBAR DRAWER WITH BACKGROUND BLUR OVERLAY
-         ========================================================= */}
-      {isMobileMenuOpen && (
-        <div 
-          onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 lg:hidden"
-        />
-      )}
-      <aside className={`
-        fixed top-0 bottom-0 left-0 w-64 bg-white z-50 flex flex-col justify-between shadow-2xl transition-transform duration-300 ease-in-out lg:hidden
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        <div className="p-4 space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <span className="text-indigo-950 font-black text-xl tracking-wide uppercase">GAD Inskedlator</span>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 hover:bg-slate-100 rounded-lg">
-              <X className="h-5 w-5 text-slate-500" />
-            </button>
-          </div>
-          <NavigationLinks />
-        </div>
+      {/* ══════════════════════════════════════════
+          BODY WRAPPER — sits below topbar
+          Exactly matches PHP .body-wrapper
+      ══════════════════════════════════════════ */}
+      <div style={{
+        display: 'flex',
+        marginTop: TOPBAR_H,
+        minHeight: `calc(100vh - ${TOPBAR_H}px)`,
+      }}>
 
-        {/* Mobile Sidebar Sign Out Trigger Capsule */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="h-9 w-9 bg-purple-900 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase ring-2 ring-purple-100 shrink-0">
-              {user.fullname.charAt(0)}
-            </div>
-            <div className="truncate min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{user.fullname}</p>
-              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Employee</p>
-            </div>
-          </div>
-          <button 
-            onClick={handleSignOut} 
-            className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Exit
-          </button>
-        </div>
-      </aside>
-
-      {/* =========================================================
-          3. DYNAMIC CONTENT WORKSPACE TRACK LAYOUT
-         ========================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        
-        {/* Universal Top Fixed Header Panel */}
-        <header className="h-16 bg-purple-900 flex items-center justify-between px-4 sm:px-6 shadow-md text-white fixed top-0 left-0 right-0 z-20 lg:left-64">
-          <div className="flex items-center gap-3 min-w-0">
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-1.5 hover:bg-white/10 rounded-lg lg:hidden transition-colors shrink-0"
-              aria-label="Open Navigation Menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div className="text-xs sm:text-sm font-semibold tracking-wide uppercase truncate">
-              {navItems.find((item) => item.path === pathname)?.name || 'Portal'}
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0">
-            <div className="flex items-center space-x-2 bg-white/10 pl-1.5 pr-3 py-1 rounded-full text-xs font-semibold select-none max-w-[140px] sm:max-w-xs">
-              <div className="h-6 w-6 bg-amber-500 rounded-full flex items-center justify-center text-indigo-950 font-bold uppercase shadow-inner shrink-0 text-[10px]">
-                {user.fullname.charAt(0)}
+        {/* ── DESKTOP SIDEBAR — fixed, below topbar ── */}
+        <nav
+          className="desktop-sidebar"
+          style={{
+            width: SIDEBAR_W,
+            background: '#fff',
+            borderRight: '0.5px solid #e2e0e7',
+            position: 'fixed',
+            top: TOPBAR_H,
+            bottom: 0,
+            left: 0,
+            zIndex: 90,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div style={{ flex:1, paddingTop:14, paddingBottom:8 }}>
+            {navSections.map(section => (
+              <div key={section.label}>
+                <span style={{
+                  display:'block', fontSize:'9.5px', fontWeight:700,
+                  letterSpacing:'0.1em', textTransform:'uppercase',
+                  color:'#8b8999', padding:'10px 16px 5px', display:'block',
+                }}>
+                  {section.label}
+                </span>
+                {section.items.map(item => {
+                  const Icon     = item.icon;
+                  const isActive = pathname === item.path;
+                  return (
+                    <Link key={item.path} href={item.path} style={{
+                      display:'flex', alignItems:'center', gap:10,
+                      padding:'9px 16px', fontSize:13,
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? '#5b1f6a' : '#4a4760',
+                      textDecoration: 'none',
+                      borderLeft: `3px solid ${isActive ? '#5b1f6a' : 'transparent'}`,
+                      background: isActive ? '#f0e6f5' : 'transparent',
+                      transition: 'background 0.12s',
+                    }}>
+                      <Icon size={17} color={isActive ? '#5b1f6a' : '#8b8999'} style={{ flexShrink:0 }} />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
               </div>
-              <span className="truncate hidden sm:inline">{user.fullname}</span>
-            </div>
-            <button 
-              onClick={handleSignOut} 
-              title="Sign Out"
-              className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-200 hover:text-white"
-            >
-              <LogOut className="h-4 w-4" />
+            ))}
+
+            <div style={{ height:'0.5px', background:'#e2e0e7', margin:'6px 16px' }} />
+
+            <button onClick={handleSignOut} style={{
+              display:'flex', alignItems:'center', gap:10,
+              padding:'9px 16px', fontSize:13, color:'#4a4760',
+              background:'none', border:'none', width:'100%',
+              textAlign:'left', cursor:'pointer',
+              borderLeft:'3px solid transparent',
+            }}>
+              <LogOut size={17} color="#8b8999" />
+              <span>Sign out</span>
             </button>
           </div>
-        </header>
 
-        {/* Main Sub-Page Workspace view container */}
-        {/* Changed block configuration to 'h-screen pt-16 flex flex-col overflow-hidden' */}
-        {/* This creates a clean layout bounding context so content scrolls perfectly without pushing the layout under the header */}
-        <main className="flex-1 h-screen pt-16 overflow-y-auto bg-slate-50">
+          {/* User pill at bottom of sidebar */}
+          <div style={{
+            padding:'12px 14px',
+            borderTop:'0.5px solid #e2e0e7',
+            display:'flex', alignItems:'center', gap:9,
+          }}>
+            <div style={{
+              width:28, height:28, borderRadius:'50%',
+              background:'#5b1f6a', color:'#FFD700',
+              fontSize:11, fontWeight:700,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              flexShrink:0, textTransform:'uppercase',
+            }}>
+              {initials}
+            </div>
+            <div style={{ overflow:'hidden', minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:600, color:'#1a1a2e', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {user.fullname}
+              </div>
+              <div style={{ fontSize:10.5, color:'#8b8999', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+                Employee
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* ── MOBILE OVERLAY ── */}
+        {isMobileOpen && (
+          <div onClick={() => setIsMobileOpen(false)} style={{
+            position:'fixed', inset:0,
+            background:'rgba(0,0,0,0.45)', zIndex:110,
+          }} />
+        )}
+
+        {/* ── MOBILE DRAWER ── */}
+        <nav style={{
+          position:'fixed', top:TOPBAR_H, bottom:0, left:0,
+          width:SIDEBAR_W, background:'#fff', zIndex:120,
+          transform: isMobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition:'transform 0.25s ease',
+          boxShadow:'4px 0 20px rgba(0,0,0,0.15)',
+          overflowY:'auto',
+        }}>
+          {navSections.map(section => (
+            <div key={section.label}>
+              <span style={{
+                display:'block', fontSize:'9.5px', fontWeight:700,
+                letterSpacing:'0.1em', textTransform:'uppercase',
+                color:'#8b8999', padding:'10px 16px 5px', display:'block',
+              }}>
+                {section.label}
+              </span>
+              {section.items.map(item => {
+                const Icon     = item.icon;
+                const isActive = pathname === item.path;
+                return (
+                  <Link key={item.path} href={item.path} style={{
+                    display:'flex', alignItems:'center', gap:10,
+                    padding:'9px 16px', fontSize:13,
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? '#5b1f6a' : '#4a4760',
+                    textDecoration:'none',
+                    borderLeft:`3px solid ${isActive ? '#5b1f6a' : 'transparent'}`,
+                    background: isActive ? '#f0e6f5' : 'transparent',
+                  }}>
+                    <Icon size={17} color={isActive ? '#5b1f6a' : '#8b8999'} style={{ flexShrink:0 }} />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+          <div style={{ height:'0.5px', background:'#e2e0e7', margin:'6px 16px' }} />
+          <button onClick={handleSignOut} style={{
+            display:'flex', alignItems:'center', gap:10,
+            padding:'9px 16px', fontSize:13, color:'#4a4760',
+            background:'none', border:'none', width:'100%',
+            textAlign:'left', cursor:'pointer',
+            borderLeft:'3px solid transparent',
+          }}>
+            <LogOut size={17} color="#8b8999" />
+            <span>Sign out</span>
+          </button>
+        </nav>
+
+        {/* ── MAIN CONTENT — offset by sidebar ── */}
+        <main style={{
+          marginLeft: SIDEBAR_W,
+          flex: 1,
+          minWidth: 0,
+          background: '#f5f4f7',
+        }} className="main-content-area">
           {children}
         </main>
 
       </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .desktop-sidebar { display: none !important; }
+          .main-content-area { margin-left: 0 !important; }
+          .mobile-hamburger { display: flex !important; }
+        }
+      `}</style>
+
     </div>
   );
 }
