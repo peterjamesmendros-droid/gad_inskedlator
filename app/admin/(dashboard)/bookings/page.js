@@ -1,244 +1,141 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  DoorClosed, Check, X, Trash2, Mail, 
-  LayoutDashboard, CalendarCheck, BarChart3, LogOut, Filter
-} from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { DoorClosed, Check, X, Trash2, Clock } from 'lucide-react';
+
+const badgeStyle = (s) => ({ display:'inline-block', fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20, background: s==='accepted' ? '#e6f5ef' : s==='rejected' ? '#fdecea' : s==='completed' ? '#f0e6f5' : '#fef3cd', color: s==='accepted' ? '#2e7d5a' : s==='rejected' ? '#c0392b' : s==='completed' ? '#5b1f6a' : '#b7791f' });
 
 export default function AdminBookingsPage() {
-  const [filter, setFilter] = useState('all');
-  const [currentTime, setCurrentTime] = useState('');
-  const [pendingCount, setPendingCount] = useState(0);
-  const [unreadCount, setUnreadCount] = useState(0);
-  
-  const [roomStatus, setRoomStatus] = useState({
-    "Room 1": { status: "Available", booked_by: null, time: "" },
-    "Room 2": { status: "Available", booked_by: null, time: "" },
-    "Room 3": { status: "Available", booked_by: null, time: "" }
-  });
-
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [rooms, setRooms]       = useState({});
+  const [filter, setFilter]     = useState('all');
+  const [liveTime, setLiveTime] = useState('');
 
-  // Core Data Fetcher
-  const fetchAdminData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // 1. Fetch live telemetry for room statuses
-      const roomRes = await fetch('/api/admin/rooms');
-      const roomData = await roomRes.json();
-      if (roomData.success) {
-        setRoomStatus(roomData.rooms);
-      }
+      const [bRes, rRes] = await Promise.all([fetch('/api/admin/bookings'), fetch('/api/rooms')]);
+      const bData = await bRes.json();
+      const rData = await rRes.json();
+      if (bData.success) setBookings(bData.bookings);
+      if (rData.success) setRooms(rData.rooms);
+    } catch {}
+  }, []);
 
-      // 2. Fetch all bookings based on current filter state
-      const bookingsRes = await fetch(`/api/admin/bookings?filter=${filter}`);
-      const bookingsData = await bookingsRes.json();
-      if (bookingsData.success) {
-        setBookings(bookingsData.bookings);
-        setPendingCount(bookingsData.meta.pendingCount || 0);
-        setUnreadCount(bookingsData.meta.unreadCount || 0);
-      }
-    } catch (err) {
-      console.error("Operational exception updating administration data panel:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [actionError, setActionError] = useState('');
 
-  // Poll intervals for live time & live database feeds
-  useEffect(() => {
-    fetchAdminData();
-    const dataInterval = setInterval(fetchAdminData, 5000);
+  useEffect(() => { fetchData(); const t = setInterval(fetchData, 10000); return () => clearInterval(t); }, [fetchData]);
+  useEffect(() => { const t = setInterval(() => setLiveTime(new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'})),1000); return ()=>clearInterval(t); },[]);
 
-    const clockInterval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    }, 1000);
-
-    return () => {
-      clearInterval(dataInterval);
-      clearInterval(clockInterval);
-    };
-  }, [filter]);
-
-  // Handle Action Triggers (Accept / Reject / Delete)
-  const handleAction = async (id, action) => {
+  async function handleAction(id, action) {
     if (action === 'delete' && !confirm('Delete this booking permanently?')) return;
-
+    setActionError('');
     try {
-      const res = await fetch(`/api/admin/bookings/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      });
-      const data = await res.json();
-      if (data.success) {
-        fetchAdminData();
-      } else {
-        alert(data.message || 'Action processing failure.');
-      }
-    } catch (err) {
-      alert('Network transmission failure updating action.');
-    }
-  };
+      const res  = await fetch(`/api/admin/bookings/${id}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action }) });
+      const json = await res.json();
+      if (!json.success) { setActionError(json.message || 'Action failed.'); return; }
+    } catch { setActionError('Network error. Please try again.'); return; }
+    fetchData();
+  }
 
-  const filterTabs = [
-    { slug: 'all', label: 'All bookings' },
-    { slug: 'pending', label: 'Pending', count: pendingCount },
-    { slug: 'accepted', label: 'Accepted' },
-    { slug: 'rejected', label: 'Rejected' },
-    { slug: 'completed', label: 'Completed' },
+  const filtered = filter === 'all' ? bookings : bookings.filter(b => b.status === filter);
+  const pendingCount = bookings.filter(b => b.status === 'pending').length;
+
+  const filters = [
+    { key:'all', label:'All bookings' },
+    { key:'pending', label:'Pending' },
+    { key:'accepted', label:'Accepted' },
+    { key:'rejected', label:'Rejected' },
+    { key:'completed', label:'Completed' },
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl w-full mx-auto">
-      
-      {/* Cleaned Page Header Split Block */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Booking management</h2>
-          <p className="text-sm text-slate-500 mt-1">Review, approve, reject, and monitor all booking requests.</p>
-        </div>
-        <div className="text-xs font-bold bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm text-slate-600 tabular-nums shrink-0 self-start sm:self-center">
-          {currentTime || '00:00:00 AM'}
-        </div>
+    <div style={{ padding:'26px 26px 40px' }}>
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:18, fontWeight:700, color:'#1a1a2e' }}>Booking management</div>
+        <div style={{ fontSize:12, color:'#8b8999', marginTop:3 }}>Review, approve, reject, and monitor all booking requests.</div>
       </div>
 
-      {/* Real-time Room Status Grid Section */}
-      <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-          <DoorClosed className="h-3.5 w-3.5" />
-          <span>Room status</span>
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Object.entries(roomStatus).map(([roomName, roomInfo]) => {
-            const isOccupied = roomInfo?.status?.toLowerCase() === "occupied";
+      {/* ROOM STATUS */}
+      <div style={{ background:'#fff', border:'0.5px solid #e2e0e7', borderRadius:12, overflow:'hidden', marginBottom:18 }}>
+        <div style={{ padding:'12px 16px', borderBottom:'0.5px solid #e2e0e7', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ fontSize:13, fontWeight:600, color:'#1a1a2e', display:'flex', alignItems:'center', gap:7 }}><DoorClosed size={14} color="#5b1f6a" /> Room status</div>
+          <span style={{ fontSize:12, color:'#8b8999' }}>{liveTime}</span>
+        </div>
+        <div style={{ padding:'14px 16px', display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
+          {['Room 1','Room 2','Room 3'].map(name => {
+            const info   = rooms[name] || { status:'available' };
+            const status = (info.status || 'available').toLowerCase();
+            const occ    = status === 'occupied';
             return (
-              <div key={roomName} className={`p-5 rounded-2xl border text-center flex flex-col items-center justify-center transition-all ${
-                isOccupied ? 'bg-rose-50/40 border-rose-100/70' : 'bg-emerald-50/40 border-emerald-100/70'
-              }`}>
-                <span className="text-slate-800 text-sm font-bold block mb-1">{roomName}</span>
-                <span className={`text-[10px] font-extrabold uppercase px-3 py-1 rounded-full ${
-                  isOccupied ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                }`}>
-                  {roomInfo?.status || 'Available'}
-                </span>
-
-                {isOccupied && roomInfo?.booked_by ? (
-                  <div className="text-[11px] text-slate-500 leading-tight mt-2 pt-2 border-t border-slate-100 w-full">
-                    <span className="font-semibold block text-slate-700 truncate">{roomInfo.booked_by}</span>
-                    <span className="text-[10px] text-slate-400">{roomInfo.time}</span>
+              <div key={name} style={{ background:'#fff', border:'0.5px solid #e2e0e7', borderRadius:12, padding:'22px 16px', textAlign:'center', borderTop:`3px solid ${occ?'#c0392b':'#2e7d5a'}`, minHeight:100, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:'#1a1a2e' }}>{name}</div>
+                <span style={{ display:'inline-block', fontSize:11, fontWeight:700, padding:'4px 14px', borderRadius:20, background: occ?'#fdecea':'#e6f5ef', color: occ?'#c0392b':'#2e7d5a' }}>{occ?'Occupied':'Available'}</span>
+                {occ && info.booked_by && (
+                  <div style={{ fontSize:11, color:'#8b8999', lineHeight:1.4 }}>
+                    {info.booked_by}<br/>{info.time}
                   </div>
-                ) : (
-                  <div className="text-[11px] text-slate-300 select-none mt-2 pt-2 border-t border-slate-100/0">—</div>
                 )}
+                {!occ && <div style={{ fontSize:11, color:'transparent' }}>—</div>}
               </div>
             );
           })}
         </div>
-      </section>
+      </div>
 
-      {/* Segmented Filter Controls Row */}
-      <div className="flex flex-wrap gap-2">
-        {filterTabs.map((tab) => (
-          <button
-            key={tab.slug}
-            onClick={() => setFilter(tab.slug)}
-            className={`px-4 py-2 rounded-full text-xs font-bold tracking-wide border transition-all flex items-center gap-2 ${
-              filter === tab.slug
-                ? 'bg-purple-900 text-white border-purple-900 shadow-sm'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <span>{tab.label}</span>
-            {tab.count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                filter === tab.slug ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-900'
-              }`}>
-                {tab.count}
-              </span>
-            )}
+      {/* FILTER BAR */}
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
+        {filters.map(f => (
+          <button key={f.key} onClick={() => setFilter(f.key)} style={{ padding:'5px 14px', borderRadius:20, border:`1px solid ${filter===f.key?'#5b1f6a':'#e2e0e7'}`, fontSize:12.5, fontWeight:500, cursor:'pointer', background: filter===f.key?'#5b1f6a':'#fff', color: filter===f.key?'#fff':'#4a4760', fontFamily:'inherit', transition:'all 0.12s' }}>
+            {f.label}{f.key==='pending'&&pendingCount>0&&<span style={{ marginLeft:5, background:'rgba(255,255,255,0.3)', borderRadius:10, padding:'0 6px', fontSize:10 }}>{pendingCount}</span>}
           </button>
         ))}
       </div>
 
-      {/* Master Data Records Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          {bookings.length > 0 ? (
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                  <th className="p-4">Employee</th>
-                  <th className="p-4">Room</th>
-                  <th className="p-4">Date</th>
-                  <th className="p-4">Time</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                {bookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 text-slate-900 font-semibold">{b.fullname}</td>
-                    <td className="p-4">{b.room}</td>
-                    <td className="p-4 text-slate-500 whitespace-nowrap">
-                      {new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </td>
-                    <td className="p-4 text-slate-500 whitespace-nowrap">
-                      {b.start_time} – {b.end_time}
-                    </td>
-                    <td className="p-4">
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
-                        b.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' :
-                        b.status === 'rejected' ? 'bg-rose-100 text-rose-700' :
-                        b.status === 'completed' ? 'bg-indigo-100 text-indigo-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {b.status === 'pending' ? (
-                          <>
-                            <button
-                              onClick={() => handleAction(b.id, 'accept')}
-                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors shadow-sm"
-                            >
-                              <Check className="h-3.5 w-3.5" /> Accept
-                            </button>
-                            <button
-                              onClick={() => handleAction(b.id, 'reject')}
-                              className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors shadow-sm"
-                            >
-                              <X className="h-3.5 w-3.5" /> Reject
-                            </button>
-                          </>
-                        ) : (
-                          <span className="text-xs text-slate-400 font-medium pr-2 select-none">Processed</span>
-                        )}
-                        <button
-                          onClick={() => handleAction(b.id, 'delete')}
-                          className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
-                          title="Delete Permanently"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="p-12 text-center text-xs text-slate-400 font-medium select-none">
-              {loading ? 'Fetching booking datasets...' : 'No bookings found for this filter layout.'}
-            </div>
-          )}
+      {/* ACTION ERROR */}
+      {actionError && (
+        <div style={{ display:'flex', alignItems:'center', gap:8, background:'#fdecea', border:'0.5px solid #f5b7b1', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#c0392b', marginBottom:14 }}>
+          ⚠ {actionError}
+          <button onClick={()=>setActionError('')} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#c0392b', fontSize:16, lineHeight:1 }}>×</button>
         </div>
-      </div>
+      )}
 
+      {/* BOOKINGS TABLE */}
+      <div style={{ background:'#fff', border:'0.5px solid #e2e0e7', borderRadius:12, overflow:'hidden' }}>
+        {filtered.length > 0 ? (
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+            <thead>
+              <tr style={{ background:'#f8f7fa', borderBottom:'0.5px solid #e2e0e7' }}>
+                {['Employee','Room','Date','Time','Status','Actions'].map(h => (
+                  <th key={h} style={{ padding:'9px 14px', textAlign:'left', fontSize:10.5, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'#8b8999', whiteSpace:'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(b => (
+                <tr key={b.id} style={{ borderBottom:'0.5px solid #e2e0e7' }}>
+                  <td style={{ padding:'10px 14px', color:'#1a1a2e', fontWeight:500 }}>{b.fullname}</td>
+                  <td style={{ padding:'10px 14px', color:'#1a1a2e' }}>{b.room}</td>
+                  <td style={{ padding:'10px 14px', color:'#1a1a2e', whiteSpace:'nowrap' }}>{new Date(b.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+                  <td style={{ padding:'10px 14px', color:'#1a1a2e', whiteSpace:'nowrap' }}>{b.start_time} – {b.end_time}</td>
+                  <td style={{ padding:'10px 14px' }}><span style={badgeStyle(b.status)}>{b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span></td>
+                  <td style={{ padding:'10px 14px' }}>
+                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                      {b.status === 'pending' && (<>
+                        <button onClick={()=>handleAction(b.id,'accept')} style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'4px 10px', background:'#e6f5ef', color:'#2e7d5a', border:'none', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}><Check size={13}/> Accept</button>
+                        <button onClick={()=>handleAction(b.id,'reject')} style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'4px 10px', background:'#fef3cd', color:'#b7791f', border:'none', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}><X size={13}/> Reject</button>
+                      </>)}
+                      {b.status !== 'pending' && <span style={{ fontSize:12, color:'#8b8999' }}>Processed</span>}
+                      <button onClick={()=>handleAction(b.id,'delete')} style={{ display:'inline-flex', alignItems:'center', padding:'4px 8px', background:'#fdecea', color:'#c0392b', border:'none', borderRadius:6, fontSize:12, cursor:'pointer' }}><Trash2 size={13}/></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding:'32px 16px', textAlign:'center', fontSize:13, color:'#8b8999' }}>No bookings found for this filter.</div>
+        )}
+      </div>
     </div>
   );
 }

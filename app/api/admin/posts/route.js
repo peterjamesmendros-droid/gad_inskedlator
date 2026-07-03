@@ -48,7 +48,7 @@ export async function POST(request) {
 
       const path = join(uploadDir, fileName);
       await writeFile(path, buffer);
-      filePath = `/uploads/${fileName}`; 
+      filePath = fileName; // store filename only; pages prepend /uploads/ when serving
     }
 
     const insertQuery = `

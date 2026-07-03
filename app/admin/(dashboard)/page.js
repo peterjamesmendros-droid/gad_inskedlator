@@ -1,308 +1,227 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  Upload, Send, Trash2, CheckCircle2, MessageSquare, BarChart3, Image as ImageIcon
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Upload, Send, Trash2, LayoutDashboard, CheckCircle2, AlertCircle } from 'lucide-react';
+
+const card = { background:'#fff', border:'0.5px solid #e2e0e7', borderRadius:12, overflow:'hidden' };
+const cardHeader = { padding:'12px 16px', borderBottom:'0.5px solid #e2e0e7', display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:600, color:'#1a1a2e' };
+const infoItem = { display:'flex', gap:10, padding:'9px 0', borderBottom:'0.5px solid #e2e0e7', fontSize:13, color:'#4a4760', lineHeight:1.5 };
+const inputStyle = { width:'100%', border:'1.5px solid #e2e0e7', borderRadius:8, padding:'9px 12px', fontSize:13.5, fontFamily:'inherit', color:'#1a1a2e', background:'#f6f5f8', outline:'none', boxSizing:'border-box' };
+const labelStyle = { display:'block', fontSize:10.5, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#4a4760', marginBottom:6 };
 
 export default function AdminDashboard() {
-  const [metrics, setMetrics] = useState({ totalBookings: 0, pendingCount: 0, totalUsers: 0, unreadCount: 0 });
-  const [posts, setPosts] = useState([]);
-  const [formProgress, setFormProgress] = useState(40);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState('No file chosen');
-  const [commentInputs, setCommentInputs] = useState({});
+  const [metrics, setMetrics]     = useState({ totalBookings:0, pendingCount:0, totalUsers:0, unreadCount:0 });
+  const [posts, setPosts]         = useState([]);
+  const [commentText, setCommentText] = useState({});
+  const [progress, setProgress]   = useState(40);
+  const [success, setSuccess]     = useState('');
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
 
-  const fetchDashboardTelemetry = useCallback(async () => {
+  useEffect(() => { fetchAll(); }, []);
+
+  async function fetchAll() {
     try {
-      const metricRes = await fetch('/api/admin/metrics', { cache: 'no-store' });
-      if (metricRes.ok) {
-        const metricData = await metricRes.json();
-        if (metricData.success) setMetrics(metricData.metrics);
-      }
+      const [mRes, pRes] = await Promise.all([fetch('/api/admin/metrics'), fetch('/api/admin/posts')]);
+      const mData = await mRes.json();
+      const pData = await pRes.json();
+      if (mData.success) setMetrics(mData.metrics);
+      if (pData.success) setPosts(pData.posts);
+    } catch {}
+  }
 
-      const postsRes = await fetch('/api/admin/posts', { cache: 'no-store' });
-      if (postsRes.ok) {
-        const postsData = await postsRes.json();
-        if (postsData.success) setPosts(postsData.posts || []);
-      }
-    } catch (err) {
-      console.error("Telemetry sync exception:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDashboardTelemetry();
-    const interval = setInterval(fetchDashboardTelemetry, 10000);
-    return () => clearInterval(interval);
-  }, [fetchDashboardTelemetry]);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    setSelectedFileName(file ? file.name : 'No file chosen');
-  };
-
-  const handleCreatePost = async (e) => {
+  async function handlePostSubmit(e) {
     e.preventDefault();
-    setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
-
+    setLoading(true); setSuccess(''); setError('');
+    const fd = new FormData(e.target);
+    fd.set('progress', progress);
     try {
-      const res = await fetch('/api/admin/posts', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.success) {
-        e.target.reset();
-        setFormProgress(40);
-        setSelectedFileName('No file chosen');
-        fetchDashboardTelemetry();
-      } else {
-        alert(`Error posting update: ${data.error}`);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      const res  = await fetch('/api/admin/posts', { method:'POST', body: fd });
+      const json = await res.json();
+      if (json.success) { setSuccess('Update posted successfully!'); e.target.reset(); setProgress(40); fetchAll(); }
+      else setError(json.message || 'Failed to post update.');
+    } catch { setError('Something went wrong.'); }
+    finally { setLoading(false); }
+  }
 
-  const handleDeletePost = async (id) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-    try {
-      const res = await fetch(`/api/admin/posts?id=${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) fetchDashboardTelemetry();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  async function handleDeletePost(id) {
+    if (!confirm('Delete this post permanently?')) return;
+    await fetch(`/api/admin/posts?id=${id}`, { method:'DELETE' });
+    fetchAll();
+  }
 
-  const handleAddComment = async (postId) => {
-    const text = commentInputs[postId]?.trim();
+  async function handleComment(uploadId) {
+    const text = (commentText[uploadId] || '').trim();
     if (!text) return;
+    await fetch('/api/admin/comments', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ upload_id:uploadId, comment:text, name:'Admin' }) });
+    setCommentText(p => ({ ...p, [uploadId]:'' }));
+    fetchAll();
+  }
 
-    try {
-      const res = await fetch('/api/admin/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ upload_id: Number(postId), name: 'Admin', comment: text }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCommentInputs(prev => ({ ...prev, [postId]: '' }));
-        fetchDashboardTelemetry(); 
-      } else {
-        alert(`Comment Error: ${data.error}`);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  async function handleDeleteComment(id) {
+    if (!confirm('Delete this comment?')) return;
+    await fetch(`/api/admin/comments?id=${id}`, { method:'DELETE' });
+    fetchAll();
+  }
 
-  const handleDeleteComment = async (commentId) => {
-    if (!confirm("Remove this comment?")) return;
-    try {
-      const res = await fetch(`/api/admin/comments?id=${commentId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) fetchDashboardTelemetry();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const ext = (path) => (path?.split('.').pop() || '').toLowerCase();
 
   return (
-    // FORCE HARDBOUND LAYOUT BOX WIDTH LIMITS
-    <div className="w-full max-w-7xl mx-auto pt-6 pb-16 px-4 sm:px-6 lg:px-8 space-y-8 block clear-both">
-      
-      {/* Title Segment */}
-      <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Admin dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">Post facility updates and manage the system.</p>
+    <div style={{ padding:'26px 26px 40px' }}>
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:18, fontWeight:700, color:'#1a1a2e' }}>Admin dashboard</div>
+        <div style={{ fontSize:12, color:'#8b8999', marginTop:3 }}>Post facility updates and manage the system.</div>
       </div>
 
-      {/* Analytics Telemetry Block Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+      {/* STAT CARDS */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:22 }}>
         {[
-          { label: "Total bookings", value: metrics.totalBookings, color: "border-l-[#521956]" },
-          { label: "Pending approval", value: metrics.pendingCount, color: "border-l-amber-500" },
-          { label: "Registered users", value: metrics.totalUsers, color: "border-l-emerald-600" },
-          { label: "Unread messages", value: metrics.unreadCount, color: "border-l-rose-500" }
-        ].map((card, idx) => (
-          <div key={idx} className={`bg-white p-5 rounded-2xl border border-slate-200 shadow-xs border-l-4 ${card.color} flex flex-col justify-between h-24`}>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{card.label}</span>
-            <span className="text-3xl font-black text-slate-800 tracking-tight">{card.value}</span>
+          { label:'Total bookings',   value: metrics.totalBookings, color:'#5b1f6a', detail: null },
+          { label:'Pending approval', value: metrics.pendingCount,  color:'#b7791f', detail: <a href="/admin/bookings" style={{ color:'#b7791f', fontSize:11 }}>Review now</a> },
+          { label:'Registered users', value: metrics.totalUsers,    color:'#2e7d5a', detail: null },
+          { label:'Unread messages',  value: metrics.unreadCount,   color:'#c0392b', detail: <a href="/admin/messages" style={{ color:'#c0392b', fontSize:11 }}>View inbox</a> },
+        ].map(({ label, value, color, detail }) => (
+          <div key={label} style={{ background:'#fff', border:'0.5px solid #e2e0e7', borderRadius:12, padding:'14px 16px', borderLeft:`3px solid ${color}`, transition:'transform 0.18s,box-shadow 0.18s' }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 20px rgba(0,0,0,0.08)'; }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow=''; }}>
+            <div style={{ fontSize:11, color:'#8b8999', marginBottom:4 }}>{label}</div>
+            <div style={{ fontSize:28, fontWeight:700, color:'#1a1a2e', lineHeight:1 }}>{value}</div>
+            {detail && <div style={{ marginTop:4 }}>{detail}</div>}
           </div>
         ))}
-      </section>
+      </div>
 
-      {/* Main Grid View */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start w-full">
-        <div className="lg:col-span-2 space-y-6 w-full">
-          
-          {/* Main Submissions Form Container */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs p-4 sm:p-6">
-            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-5 uppercase tracking-wide">
-              <Upload className="w-3.5 h-3.5 text-[#521956]" /> Post a facility update
-            </h3>
-            <form onSubmit={handleCreatePost} className="space-y-4" encType="multipart/form-data">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Title</label>
-                <input className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-purple-600 transition-all text-slate-700" type="text" name="title" placeholder="Update title" required />
+      {/* TWO-COLUMN LAYOUT */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 260px', gap:20, alignItems:'start', marginBottom:22 }}>
+
+        {/* LEFT: POST FORM */}
+        <div style={card}>
+          <div style={cardHeader}><Upload size={14} color="#5b1f6a" /> Post a facility update</div>
+          <div style={{ padding:'16px 16px 20px' }}>
+            {success && <div style={{ display:'flex', alignItems:'center', gap:8, background:'#e6f5ef', border:'0.5px solid #b7e0cc', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#2e7d5a', marginBottom:14 }}><CheckCircle2 size={15}/>{success}</div>}
+            {error   && <div style={{ display:'flex', alignItems:'center', gap:8, background:'#fdecea', border:'0.5px solid #f5b7b1', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#c0392b', marginBottom:14 }}><AlertCircle size={15}/>{error}</div>}
+            <form onSubmit={handlePostSubmit}>
+              <div style={{ marginBottom:14 }}>
+                <label style={labelStyle}>Title</label>
+                <input style={inputStyle} name="title" placeholder="Update title" required />
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Description</label>
-                <textarea className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-purple-600 transition-all text-slate-700" name="description" rows="4" placeholder="Describe the update..." required />
+              <div style={{ marginBottom:14 }}>
+                <label style={labelStyle}>Description</label>
+                <textarea style={{ ...inputStyle, resize:'vertical', minHeight:80, padding:12 }} name="description" rows={4} placeholder="Describe the update..." required />
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Facility Type</label>
-                <select className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-purple-600 transition-all text-slate-700" name="category">
-                  <option value="Child-Minding">Child-Minding</option>
-                  <option value="Lactation Room">Lactation Room Improvements</option>
+              <div style={{ marginBottom:14 }}>
+                <label style={labelStyle}>Facility type</label>
+                <select style={inputStyle} name="category">
+                  <option value="Child-Minding">Child-Minding Center</option>
+                  <option value="Lactation Room">Lactation Room</option>
                 </select>
               </div>
-              
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Upload Photo / Video</label>
-                <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
-                  <label className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 border-r border-slate-200 cursor-pointer transition-all text-xs font-bold shrink-0">
-                    Choose File
-                    <input type="file" name="file" className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
-                  </label>
-                  <span className="text-xs text-slate-600 px-3 truncate font-medium">{selectedFileName}</span>
-                </div>
+              <div style={{ marginBottom:14 }}>
+                <label style={labelStyle}>Upload photo / video</label>
+                <input style={{ ...inputStyle, height:'auto', padding:'8px 12px' }} type="file" name="file" accept="image/*,video/*" required />
               </div>
-
-              {/* FIXED PROGRESS TRACK BAR ACCENTS AND STYLING OVERRIDES */}
-              <div className="space-y-2 pt-1">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold uppercase tracking-wider text-[10px] text-slate-500">Progress — {formProgress}%</span>
-                </div>
-                <input 
-                  className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#521956] bg-slate-100 outline-none block" 
-                  type="range" 
-                  name="progress" 
-                  min="0" 
-                  max="100" 
-                  value={formProgress} 
-                  onChange={(e) => setFormProgress(parseInt(e.target.value))} 
-                  style={{
-                    background: `linear-gradient(to right, #521956 0%, #521956 ${formProgress}%, #e2e8f0 ${formProgress}%, #e2e8f0 100%)`,
-                    WebkitAppearance: 'none'
-                  }}
-                />
+              <div style={{ marginBottom:16 }}>
+                <label style={labelStyle}>Progress — <span>{progress}</span>%</label>
+                <input type="range" name="progress" min={0} max={100} value={progress}
+                  onChange={e => setProgress(+e.target.value)}
+                  style={{ width:'100%', accentColor:'#5b1f6a', marginBottom:4 }} />
+                <div style={{ fontSize:11, color:'#8b8999' }}>0–30% Planning &nbsp;|&nbsp; 40–70% Implementation &nbsp;|&nbsp; 80–100% Completed</div>
               </div>
-
-              <button className="w-full bg-[#521956] hover:bg-purple-900 text-white text-xs font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2" type="submit" disabled={isSubmitting}>
-                <Send className="w-3.5 h-3.5" /> {isSubmitting ? "Uploading..." : "Post update"}
+              <button type="submit" disabled={loading} style={{ width:'100%', height:44, background:'#5b1f6a', color:'#fff', border:'none', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontFamily:'inherit' }}>
+                <Send size={15} /> {loading ? 'Posting...' : 'Post update'}
               </button>
             </form>
           </div>
-
-          {/* Timeline Feed Container */}
-          <div className="space-y-4 w-full">
-            <div className="flex items-center gap-2 text-slate-800 px-1 py-1">
-              <MessageSquare className="w-4 h-4 text-[#521956]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider">Posted updates</h3>
-            </div>
-
-            {posts.length === 0 ? (
-              <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center flex flex-col items-center justify-center space-y-2">
-                <ImageIcon className="w-8 h-8 text-slate-300" />
-                <p className="text-xs font-medium text-slate-400">No updates posted yet. Fill out the form above to post your first update!</p>
-              </div>
-            ) : (
-              posts.map((post) => (
-                <div key={post.id} className="bg-white border border-slate-200 rounded-2xl shadow-xs p-4 sm:p-6 space-y-4 w-full block">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 w-full">
-                    <div className="space-y-1.5">
-                      <h4 className="font-black text-rose-800 text-sm tracking-tight uppercase break-words">{post.title}</h4>
-                      <span className="text-[10px] bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold tracking-wide inline-block">
-                        {post.category}
-                      </span>
-                    </div>
-                    <button onClick={() => handleDeletePost(post.id)} className="text-xs text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1 rounded-xl font-bold border border-rose-200/40 transition-all flex items-center gap-1 self-start sm:self-auto">
-                      <Trash2 className="w-3 h-3" /> Delete
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-slate-600 leading-relaxed font-medium whitespace-pre-wrap break-words">{post.description}</p>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Progress: <strong className="text-slate-600">{post.progress}%</strong></span>
-                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                      <div className="bg-[#521956] h-full transition-all duration-500" style={{ width: `${post.progress}%` }} />
-                    </div>
-                  </div>
-
-                  {post.file_path && (
-                    <div className="border border-slate-100 rounded-2xl overflow-hidden bg-slate-50 flex justify-center p-2 max-h-[420px]">
-                      <img src={post.file_path} alt={post.title} className="object-contain rounded-xl max-h-[400px] w-full h-auto shadow-xs" />
-                    </div>
-                  )}
-
-                  {/* Comment Thread Layout */}
-                  <div className="pt-4 border-t border-slate-100 space-y-3 w-full">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Comments</span>
-                    
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {post.comments && post.comments.map((comment) => (
-                        <div key={comment.id} className="bg-slate-50/80 border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-between group gap-2">
-                          <div className="text-xs leading-relaxed break-words min-w-0 flex-1">
-                            <strong className="text-purple-950 font-bold mr-1.5 shrink-0">{comment.name}:</strong>
-                            <span className="text-slate-600 font-medium">{comment.comment}</span>
-                          </div>
-                          <button onClick={() => handleDeleteComment(comment.id)} className="text-[10px] text-rose-500 hover:underline font-bold lg:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                            delete
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2 pt-1 w-full">
-                      <input 
-                        type="text" 
-                        value={commentInputs[post.id] || ''}
-                        onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
-                        placeholder="Write a comment..."
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-purple-600 font-medium text-slate-700 min-w-0"
-                      />
-                      <button onClick={() => handleAddComment(post.id)} className="bg-[#521956] hover:bg-purple-900 text-white text-xs font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs shrink-0">
-                        <Send className="w-3 h-3" /> Post
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-              ))
-            )}
-          </div>
-
         </div>
 
-        {/* Right Info Gutters */}
-        <div className="space-y-6 w-full lg:sticky lg:top-4">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs p-5 space-y-4">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#521956]" /> Facility focus
-            </h3>
-            <ul className="text-xs space-y-3 text-slate-600 font-medium">
-              <li>✓ Child-Minding Center Development</li>
-              <li>✓ Lactation Room Improvements</li>
-              <li>✓ Renovation & Equipment Updates</li>
-            </ul>
+        {/* RIGHT SIDEBAR */}
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div style={card}>
+            <div style={cardHeader}><CheckCircle2 size={14} color="#5b1f6a" /> Facility focus</div>
+            <div style={{ padding:'4px 16px 8px' }}>
+              {['Child-Minding Center Development','Lactation Room Improvements','Renovation & Equipment Updates'].map((t,i,a) => (
+                <div key={t} style={{ ...infoItem, borderBottom: i===a.length-1 ? 'none' : '0.5px solid #e2e0e7' }}>
+                  <CheckCircle2 size={14} color="#5b1f6a" style={{ flexShrink:0, marginTop:2 }} /><span>{t}</span>
+                </div>
+              ))}
+            </div>
           </div>
-
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs p-5 space-y-3">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-[#521956]" /> Progress guide
-            </h3>
-            <div className="space-y-2 text-xs text-slate-600 font-medium">
-              <div>• <strong>0–30%</strong> Planning stage</div>
-              <div>• <strong>40–70%</strong> Implementation</div>
-              <div>• <strong>80–100%</strong> Completed</div>
+          <div style={card}>
+            <div style={cardHeader}><LayoutDashboard size={14} color="#5b1f6a" /> Progress guide</div>
+            <div style={{ padding:'4px 16px 8px' }}>
+              {[['0–30%','Planning stage'],['40–70%','Implementation'],['80–100%','Completed']].map(([pct,lbl],i,a) => (
+                <div key={pct} style={{ ...infoItem, borderBottom: i===a.length-1 ? 'none' : '0.5px solid #e2e0e7' }}>
+                  <span style={{ color:'#5b1f6a', fontWeight:700, minWidth:52, fontSize:12 }}>{pct}</span><span>{lbl}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={card}>
+            <div style={cardHeader}><AlertCircle size={14} color="#5b1f6a" /> Reminders</div>
+            <div style={{ padding:'4px 16px 8px' }}>
+              {['Files must comply with company policies and data protection regulations.','Content must be respectful, professional, and free from unauthorized confidential information.'].map((t,i,a) => (
+                <div key={t} style={{ ...infoItem, borderBottom: i===a.length-1 ? 'none' : '0.5px solid #e2e0e7', fontSize:12 }}>
+                  <CheckCircle2 size={13} color="#5b1f6a" style={{ flexShrink:0, marginTop:2 }} /><span>{t}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* POSTED UPDATES */}
+      {posts.length > 0 && (
+        <div>
+          <div style={{ fontSize:14, fontWeight:600, color:'#1a1a2e', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
+            <Upload size={15} color="#5b1f6a" /> Posted updates
+          </div>
+          {posts.map(post => (
+            <div key={post.id} style={{ ...card, marginBottom:16 }}>
+              <div style={{ padding:'16px 16px 12px' }}>
+                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:600, color:'#5b1f6a', marginBottom:4 }}>{post.title}</div>
+                    <span style={{ fontSize:11, fontWeight:600, padding:'2px 9px', borderRadius:20, background:'#fef3cd', color:'#b7791f' }}>{post.category}</span>
+                  </div>
+                  <button onClick={() => handleDeletePost(post.id)} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:12, color:'#c0392b', background:'#fdecea', border:'1px solid #fdecea', borderRadius:8, padding:'5px 10px', cursor:'pointer', fontWeight:600, fontFamily:'inherit', flexShrink:0 }}>
+                    <Trash2 size={13} /> Delete
+                  </button>
+                </div>
+                <div style={{ fontSize:13, color:'#4a4760', lineHeight:1.7, marginBottom:10 }}>{post.description}</div>
+                <div style={{ fontSize:12, color:'#8b8999', marginBottom:4 }}>Progress: <strong>{post.progress}%</strong></div>
+                <div style={{ height:7, background:'#e2e0e7', borderRadius:4, overflow:'hidden', marginBottom:12 }}>
+                  <div style={{ height:7, background:'#5b1f6a', borderRadius:4, width:`${post.progress}%` }} />
+                </div>
+                {['jpg','jpeg','png','gif'].includes(ext(post.file_path)) && (
+                  <img src={post.file_path.startsWith("/uploads") ? post.file_path : `/uploads/${post.file_path}`} alt={post.title} style={{ width:'100%', maxHeight:360, objectFit:'contain', borderRadius:8, border:'0.5px solid #e2e0e7', display:'block' }} />
+                )}
+                {['mp4','webm'].includes(ext(post.file_path)) && (
+                  <video controls style={{ width:'100%', maxHeight:360, borderRadius:8, display:'block' }}>
+                    <source src={post.file_path.startsWith("/uploads") ? post.file_path : `/uploads/${post.file_path}`} />
+                  </video>
+                )}
+              </div>
+              <div style={{ borderTop:'0.5px solid #e2e0e7', padding:'12px 16px' }}>
+                <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'#8b8999', marginBottom:10 }}>Comments</div>
+                {post.comments?.map(c => (
+                  <div key={c.id} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, background:'#f8f7fa', borderRadius:8, padding:'8px 12px', fontSize:13, marginBottom:6 }}>
+                    <div><span style={{ fontWeight:600, color:'#5b1f6a' }}>{c.name}:</span> <span style={{ color:'#4a4760' }}>{c.comment}</span></div>
+                    <button onClick={() => handleDeleteComment(c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#c0392b', fontSize:11, fontWeight:600, flexShrink:0, fontFamily:'inherit' }}>delete</button>
+                  </div>
+                ))}
+                <div style={{ display:'flex', gap:8, marginTop:8 }}>
+                  <input type="text" value={commentText[post.id]||''} onChange={e=>setCommentText(p=>({...p,[post.id]:e.target.value}))}
+                    onKeyDown={e=>e.key==='Enter'&&handleComment(post.id)}
+                    placeholder="Write a comment..." style={{ flex:1, border:'1.5px solid #e2e0e7', borderRadius:8, padding:'7px 12px', fontSize:13, fontFamily:'inherit', outline:'none', background:'#f8f7fa' }} />
+                  <button onClick={()=>handleComment(post.id)} style={{ padding:'0 14px', background:'#5b1f6a', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600, fontFamily:'inherit' }}>
+                    <Send size={14} /> Post
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

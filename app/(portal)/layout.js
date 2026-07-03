@@ -20,13 +20,46 @@ export default function PortalLayout({ children }) {
   const pathname = usePathname();
   const [user, setUser] = useState({ fullname: 'Guest' });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [unseenCount, setUnseenCount]   = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem('session_user');
     if (saved) try { setUser(JSON.parse(saved)); } catch {}
   }, []);
 
-  useEffect(() => { setIsMobileOpen(false); }, [pathname]);
+  useEffect(() => {
+    async function fetchUnseenCount() {
+      try {
+        const res  = await fetch('/api/updates');
+        const json = await res.json();
+        if (json.success) {
+          const total    = json.posts?.length ?? 0;
+          const lastSeen = parseInt(localStorage.getItem('updates_last_seen') || '0', 10);
+          setUnseenCount(Math.max(0, total - lastSeen));
+        }
+      } catch {}
+    }
+    fetchUnseenCount();
+  }, [pathname]); // re-check on every page navigation
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+    // When user navigates to Updates, mark everything as seen
+    if (pathname === '/updates') {
+      async function markSeen() {
+        try {
+          const res  = await fetch('/api/updates');
+          const json = await res.json();
+          if (json.success) {
+            const total = json.posts?.length ?? 0;
+            localStorage.setItem('updates_last_seen', String(total));
+            setUnseenCount(0);
+          }
+        } catch {}
+      }
+      markSeen();
+    }
+  }, [pathname]);
 
   const handleSignOut = () => {
     localStorage.removeItem('session_user');
@@ -186,7 +219,15 @@ export default function PortalLayout({ children }) {
                       transition: 'background 0.12s',
                     }}>
                       <Icon size={17} color={isActive ? '#5b1f6a' : '#8b8999'} style={{ flexShrink:0 }} />
-                      <span>{item.name}</span>
+                      <span style={{ flex:1 }}>{item.name}</span>
+                      {item.path === '/updates' && unseenCount > 0 && (
+                        <span style={{
+                          background: '#5b1f6a', color: '#fff',
+                          fontSize: 10, fontWeight: 700,
+                          padding: '1px 6px', borderRadius: 10,
+                          minWidth: 18, textAlign: 'center', flexShrink: 0,
+                        }}>{unseenCount}</span>
+                      )}
                     </Link>
                   );
                 })}
@@ -273,7 +314,15 @@ export default function PortalLayout({ children }) {
                     background: isActive ? '#f0e6f5' : 'transparent',
                   }}>
                     <Icon size={17} color={isActive ? '#5b1f6a' : '#8b8999'} style={{ flexShrink:0 }} />
-                    <span>{item.name}</span>
+                    <span style={{ flex:1 }}>{item.name}</span>
+                    {item.path === '/updates' && unseenCount > 0 && (
+                      <span style={{
+                        background: '#5b1f6a', color: '#fff',
+                        fontSize: 10, fontWeight: 700,
+                        padding: '1px 6px', borderRadius: 10,
+                        minWidth: 18, textAlign: 'center', flexShrink: 0,
+                      }}>{unseenCount}</span>
+                    )}
                   </Link>
                 );
               })}

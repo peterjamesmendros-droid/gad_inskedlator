@@ -75,11 +75,11 @@ export default function UpdatesPage() {
               </div>
             </div>
             {['jpg','jpeg','png','gif'].includes(ext(post.file_path)) && (
-              <img src={`/uploads/${post.file_path}`} alt={post.title} style={{ width:'100%', maxHeight:380, objectFit:'contain', borderRadius:8, border:'0.5px solid #e2e0e7' }} />
+              <img src={post.file_path.startsWith("/uploads") ? post.file_path : `/uploads/${post.file_path}`} alt={post.title} style={{ width:'100%', maxHeight:380, objectFit:'contain', borderRadius:8, border:'0.5px solid #e2e0e7' }} />
             )}
             {['mp4','webm'].includes(ext(post.file_path)) && (
               <video controls style={{ width:'100%', maxHeight:380, borderRadius:8 }}>
-                <source src={`/uploads/${post.file_path}`} />
+                <source src={post.file_path.startsWith("/uploads") ? post.file_path : `/uploads/${post.file_path}`} />
               </video>
             )}
           </div>
