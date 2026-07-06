@@ -45,7 +45,7 @@ npm install
 Create a file named **`.env.local`** in the root of the `gad_inskedlator` folder (same level as `package.json`). This file is never committed to Git.
 
 ```
-POSTGRES_URL=postgresql://neondb_owner:npg_xkvJ87DcTZGK@ep-bold-forest-aomf1frs-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+POSTGRES_URL=
 ```
 
 ### 4. Run the schema (first time only)
