@@ -7,7 +7,7 @@ import {
   LayoutDashboard, CalendarDays, BookOpen, Bell,
   Building2, Phone, BarChart3, LogOut, Menu, X
 } from 'lucide-react';
-// 1. Import your newly refactored Next.js Chatbot component
+
 import Chatbot from '@/components/Chatbot';
 
 function getInitials(name = '') {
@@ -352,6 +352,8 @@ export default function PortalLayout({ children }) {
         </main>
 
       </div>
+
+      <Chatbot currentUser={user} />
 
       <style>{`
         @media (max-width: 900px) {

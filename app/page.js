@@ -14,15 +14,26 @@ export default function SignInPortal() {
     const [errorMsg, setErrorMsg] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Dynamic data polling hook
+    // FIXED: Synchronized data polling telemetry to match Signup page structure
     useEffect(() => {
         async function fetchLiveStatus() {
             try {
+                // 1. Pointed to the correct working endpoint route
                 const res = await fetch('/api/rooms');
                 const data = await res.json();
+                
                 if (data.success) {
-                    setRooms(data.rooms);
-                    setCurrentDate(new Date(data.dateString).toLocaleDateString('en-US', {
+                    const parsed = {};
+                    Object.entries(data.rooms).forEach(([name, info]) => {
+                        // 2. Safely parse either nested object layouts or raw string tokens
+                        const statusString = typeof info === 'object' && info !== null ? info.status : info;
+                        parsed[name] = statusString?.toLowerCase() === 'occupied' ? 'Occupied' : 'Available';
+                    });
+                    setRooms(parsed);
+                    
+                    // 3. Fallback logic to protect from "Invalid Date" evaluation errors
+                    const dateTarget = data.dateString ? new Date(data.dateString) : new Date();
+                    setCurrentDate(dateTarget.toLocaleDateString('en-US', {
                         month: 'short', day: 'numeric', year: 'numeric'
                     }));
                 }
@@ -31,7 +42,7 @@ export default function SignInPortal() {
             }
         }
         fetchLiveStatus();
-        const interval = setInterval(fetchLiveStatus, 30000); // Poll every 30s
+        const interval = setInterval(fetchLiveStatus, 5000); // Polling synchronized to 5s interval matching signup speed
         return () => clearInterval(interval);
     }, []);
 
@@ -65,7 +76,7 @@ export default function SignInPortal() {
     return (
         <div className="min-h-screen w-full flex flex-col md:flex-row bg-slate-900 font-sans antialiased">
             
-            {/* LEFT COMPONENT CANVAS PANEL - Matched to Signup style and gradient profile */}
+            {/* LEFT COMPONENT CANVAS PANEL */}
             <div className="relative w-full md:w-1/2 bg-cover bg-center h-[380px] md:min-h-screen p-8 shrink-0" 
                  style={{ backgroundImage: "url('/background/loginbg.png')" }}>
                 <div className="absolute inset-0 bg-gradient-to-t from-purple-950/90 via-slate-900/50 to-transparent" />
@@ -84,7 +95,7 @@ export default function SignInPortal() {
                     </span>
                   </div>
 
-                  {/* Strict Side-by-Side Horizontal Cards Grid (Forced 3 Columns) */}
+                  {/* Strict Side-by-Side Horizontal Cards Grid */}
                   <div className="grid grid-cols-3 gap-2 w-full">
                     {Object.entries(rooms).map(([name, status]) => {
                       const isOccupied = status === "Occupied";
@@ -165,7 +176,6 @@ export default function SignInPortal() {
                             <p className="text-slate-400 font-medium">Create account? <a href="/signup" className="text-purple-900 hover:underline">Sign Up here</a></p>
                         </div>
 
-                        {/* Updated Theme Matching Button Colors */}
                         <button type="submit" disabled={isLoading}
                                 className="w-full py-3 bg-purple-900 hover:bg-purple-950 disabled:bg-purple-300 text-white font-bold text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 mt-2">
                             <span>{isLoading ? 'Signing In...' : 'Sign In to Your Account'}</span>
