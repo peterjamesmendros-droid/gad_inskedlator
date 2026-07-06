@@ -28,7 +28,7 @@ DICT MISS-DWAD Division
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/peterjamesmendros-droid/GAD-INSKEDLATOR.git
+git clone https://github.com/peterjamesmendros-droid/gad_inskedlator.git
 cd gad_inskedlator
 ```
 
