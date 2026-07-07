@@ -42,10 +42,12 @@ npm install
 
 ### 3. Create `.env.local`
 
-Create a file named **`.env.local`** in the root of the `gad_inskedlator` folder (same level as `package.json`). This file is never committed to Git.
+Create a file named **`.env.local`** in the root of the `gad_inskedlator` folder (same level as `package.json`). This file is never committed to Git. 
+go to your neon dashboard and click connect and copy your postgre_url or password.
+(Make sure to change YOUR_PASSWORD to your actual live database password before hitting Enter!)
 
 ```
-POSTGRES_URL=
+POSTGRES_URL=postgresql://neondb_owner:YOUR_PASSWORD@ep-nameless-firefly-aooc59r8.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
 ```
 
 ### 4. Run the schema (first time only)
